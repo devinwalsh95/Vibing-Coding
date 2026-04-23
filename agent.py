@@ -14,9 +14,13 @@ import anthropic
 SOLUTIONS_DIR = Path(__file__).parent / "solutions"
 
 # Model ID — override via ANTHROPIC_MODEL env var.
-# Direct Anthropic API default: claude-opus-4-6
-# Hyperspace proxy default:     anthropic--claude-4.6-opus
-MODEL_ID = os.environ.get("ANTHROPIC_MODEL", "claude-opus-4-6")
+# Hyperspace proxy requires "anthropic--claude-4.6-opus"; direct API uses "claude-opus-4-6".
+# ANTHROPIC_BASE_URL is injected from Streamlit secrets by app.py before this module loads.
+_base_url_env = os.environ.get("ANTHROPIC_BASE_URL")
+MODEL_ID = os.environ.get(
+    "ANTHROPIC_MODEL",
+    "anthropic--claude-4.6-opus" if _base_url_env else "claude-opus-4-6",
+)
 
 # Web search is supported on the direct Anthropic API but not through the
 # Hyperspace proxy. Enabled automatically when ANTHROPIC_BASE_URL is not set.
@@ -248,10 +252,9 @@ def run_discovery(
         yield "**Error:** `ANTHROPIC_API_KEY` environment variable is not set."
         return
 
-    base_url = os.environ.get("ANTHROPIC_BASE_URL")
     client = anthropic.Anthropic(
         api_key=api_key,
-        **({"base_url": base_url} if base_url else {}),
+        **({"base_url": _base_url_env} if _base_url_env else {}),
     )
 
     # Build system prompt with injected solution knowledge
@@ -347,10 +350,9 @@ def refine_section(
         yield "**Error:** `ANTHROPIC_API_KEY` environment variable is not set."
         return
 
-    base_url = os.environ.get("ANTHROPIC_BASE_URL")
     client = anthropic.Anthropic(
         api_key=api_key,
-        **({"base_url": base_url} if base_url else {}),
+        **({"base_url": _base_url_env} if _base_url_env else {}),
     )
 
     solution_capabilities = load_solution_capabilities(solutions)
@@ -376,7 +378,7 @@ Refinement instructions:
 Output ONLY the revised body content for this section. Do NOT include the section heading (e.g., "## {section_name}") — just the body. Preserve all markdown formatting conventions from the original brief (bold questions, italic listen-for lines, blockquote probes, etc.)."""
 
     with client.messages.stream(
-        model="anthropic--claude-4.6-opus",
+        model=MODEL_ID,
         max_tokens=4000,
         system=system_prompt,
         messages=[{"role": "user", "content": user_message}],
@@ -541,10 +543,9 @@ def run_demo_prep(
         yield "**Error:** `ANTHROPIC_API_KEY` environment variable is not set."
         return
 
-    base_url = os.environ.get("ANTHROPIC_BASE_URL")
     client = anthropic.Anthropic(
         api_key=api_key,
-        **({"base_url": base_url} if base_url else {}),
+        **({"base_url": _base_url_env} if _base_url_env else {}),
     )
 
     solution_capabilities = load_solution_capabilities(solutions)
@@ -608,10 +609,9 @@ def run_demo_delivery(
         yield "**Error:** `ANTHROPIC_API_KEY` environment variable is not set."
         return
 
-    base_url = os.environ.get("ANTHROPIC_BASE_URL")
     client = anthropic.Anthropic(
         api_key=api_key,
-        **({"base_url": base_url} if base_url else {}),
+        **({"base_url": _base_url_env} if _base_url_env else {}),
     )
 
     solution_capabilities = load_solution_capabilities(solutions)

@@ -6,6 +6,14 @@ Three-phase tool: Discovery → Demo Prep → Demo Delivery
 import os
 import re
 import streamlit as st
+
+# Inject Streamlit secrets into env vars before importing agent.
+# On Streamlit Cloud, secrets are set in the app dashboard (not env vars).
+# agent.py reads these at module-level, so they must be set before the import.
+for _secret_key in ("ANTHROPIC_API_KEY", "ANTHROPIC_BASE_URL", "ANTHROPIC_MODEL"):
+    if _secret_key not in os.environ and hasattr(st, "secrets") and _secret_key in st.secrets:
+        os.environ[_secret_key] = st.secrets[_secret_key]
+
 from agent import run_discovery, run_demo_prep, run_demo_delivery, refine_section, SOLUTION_FILES
 from diagram import extract_process_flow, render_process_flow
 from export import md_to_docx
